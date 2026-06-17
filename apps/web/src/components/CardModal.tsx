@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { api } from '../api';
 import type { Card } from '../types';
 
@@ -15,6 +15,22 @@ export default function CardModal({ deckId, card, onSave, onClose }: Props) {
   const [backText, setBackText] = useState(card?.backText ?? '');
   const [backImage, setBackImage] = useState(card?.backImage ?? '');
   const [saving, setSaving] = useState(false);
+
+  const frontTextRef = useRef<HTMLTextAreaElement>(null);
+  const backTextRef  = useRef<HTMLTextAreaElement>(null);
+  const frontImgRef  = useRef<HTMLInputElement>(null);
+  const backImgRef   = useRef<HTMLInputElement>(null);
+
+  // Tab order: frontText → backText → frontImg → backImg → (wrap)
+  function handleTab(
+    e: React.KeyboardEvent,
+    prev: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>,
+    next: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>
+  ) {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    (e.shiftKey ? prev : next).current?.focus();
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,48 +59,60 @@ export default function CardModal({ deckId, card, onSave, onClose }: Props) {
       <form className="modal" onSubmit={handleSubmit}>
         <h2 className="modal-title">{card ? 'Edit Card' : 'New Card'}</h2>
 
-        <div className="form-section">Front</div>
-        <div className="form-group">
-          <label className="form-label">Text</label>
-          <textarea
-            className="form-textarea"
-            rows={2}
-            placeholder="What goes on the front?"
-            value={frontText}
-            onChange={e => setFrontText(e.target.value)}
-          />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Image URL (optional)</label>
-          <input
-            className="form-input"
-            type="url"
-            placeholder="https://..."
-            value={frontImage}
-            onChange={e => setFrontImage(e.target.value)}
-          />
-        </div>
+        <div className="modal-card-grid">
+          <div className="form-section">Front</div>
+          <div className="form-section">Back</div>
 
-        <div className="form-section" style={{ marginTop: 8 }}>Back</div>
-        <div className="form-group">
-          <label className="form-label">Text</label>
-          <textarea
-            className="form-textarea"
-            rows={2}
-            placeholder="What goes on the back?"
-            value={backText}
-            onChange={e => setBackText(e.target.value)}
-          />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Image URL (optional)</label>
-          <input
-            className="form-input"
-            type="url"
-            placeholder="https://..."
-            value={backImage}
-            onChange={e => setBackImage(e.target.value)}
-          />
+          <div className="form-group">
+            <label className="form-label">Text</label>
+            <textarea
+              ref={frontTextRef}
+              className="form-textarea"
+              rows={3}
+              placeholder="What goes on the front?"
+              value={frontText}
+              autoFocus
+              onChange={e => setFrontText(e.target.value)}
+              onKeyDown={e => handleTab(e, backImgRef, backTextRef)}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Text</label>
+            <textarea
+              ref={backTextRef}
+              className="form-textarea"
+              rows={3}
+              placeholder="What goes on the back?"
+              value={backText}
+              onChange={e => setBackText(e.target.value)}
+              onKeyDown={e => handleTab(e, frontTextRef, frontImgRef)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Image URL (optional)</label>
+            <input
+              ref={frontImgRef}
+              className="form-input"
+              type="url"
+              placeholder="https://..."
+              value={frontImage}
+              onChange={e => setFrontImage(e.target.value)}
+              onKeyDown={e => handleTab(e, backTextRef, backImgRef)}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Image URL (optional)</label>
+            <input
+              ref={backImgRef}
+              className="form-input"
+              type="url"
+              placeholder="https://..."
+              value={backImage}
+              onChange={e => setBackImage(e.target.value)}
+              onKeyDown={e => handleTab(e, frontImgRef, frontTextRef)}
+            />
+          </div>
         </div>
 
         <div className="modal-footer">
