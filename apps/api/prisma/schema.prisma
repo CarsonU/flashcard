@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Deck {
+  id        String   @id @default(cuid())
+  title     String
+  createdAt DateTime @default(now())
+  cards     Card[]
+}
+
+model Card {
+  id             String    @id @default(cuid())
+  deckId         String
+  deck           Deck      @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  frontText      String?
+  frontImage     String?
+  backText       String?
+  backImage      String?
+  status         Status    @default(focus)
+  lastReviewedAt DateTime?
+}
+
+enum Status {
+  focus
+  learned
+}
