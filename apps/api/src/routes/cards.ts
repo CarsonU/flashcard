@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Prisma } from '@prisma/client';
 import prisma from '../prisma';
 
 const router = Router();
@@ -28,7 +29,7 @@ router.patch('/:id/status', async (req, res) => {
     return;
   }
   try {
-    const data = markReviewed === false
+    const data: Prisma.CardUpdateInput = markReviewed === false
       ? { status }
       : { status, lastReviewedAt: new Date() };
     const card = await prisma.card.update({
