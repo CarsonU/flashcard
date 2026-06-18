@@ -806,6 +806,23 @@ button {
   animation: fade-up 0.2s ease;
 }
 
+.review-area {
+  width: min(620px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fade-up 0.2s ease;
+}
+
+.review-area .review-btns {
+  width: 100%;
+  animation: none;
+}
+
+.review-hint {
+  min-height: auto;
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -1300,6 +1317,10 @@ button {
   }
 
   .review-btns {
+    gap: 10px;
+  }
+
+  .review-area {
     gap: 10px;
   }
 

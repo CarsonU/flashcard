@@ -192,10 +192,8 @@ export default function StudySession({ deckId, deckTitle, includeLearned, onDone
           type="button"
           className="flip-scene"
           aria-pressed={flipped}
-          aria-label={flipped ? 'Answer revealed. Choose how well you knew it.' : 'Reveal answer'}
-          onClick={() => {
-            if (!flipped) setFlipped(true);
-          }}
+          aria-label={flipped ? 'Answer revealed. Tap to view the front again, or choose a rating below.' : 'Reveal answer'}
+          onClick={() => setFlipped(f => !f)}
         >
           <div className={`flip-card${flipped ? ' flipped' : ''}`} key={index}>
             <div className="flip-face front">
@@ -233,27 +231,30 @@ export default function StudySession({ deckId, deckTitle, includeLearned, onDone
             </span>
           </p>
         ) : (
-          <div className="review-btns" aria-label="Rate this card">
-            <button
-              type="button"
-              className="review-btn review-btn-focus"
-              onClick={() => review('focus')}
-              disabled={reviewing}
-            >
-              Still Learning
-              <span className="review-btn-sub mobile-copy">Review again soon</span>
-              <span className="review-btn-sub desktop-copy">Left arrow</span>
-            </button>
-            <button
-              type="button"
-              className="review-btn review-btn-learned"
-              onClick={() => review('learned')}
-              disabled={reviewing}
-            >
-              Got It
-              <span className="review-btn-sub mobile-copy">Mark as learned</span>
-              <span className="review-btn-sub desktop-copy">Right arrow</span>
-            </button>
+          <div className="review-area">
+            <p className="card-hint review-hint">Tap card to view the front again</p>
+            <div className="review-btns" aria-label="Rate this card">
+              <button
+                type="button"
+                className="review-btn review-btn-focus"
+                onClick={() => review('focus')}
+                disabled={reviewing}
+              >
+                Still Learning
+                <span className="review-btn-sub mobile-copy">Review again soon</span>
+                <span className="review-btn-sub desktop-copy">Left arrow</span>
+              </button>
+              <button
+                type="button"
+                className="review-btn review-btn-learned"
+                onClick={() => review('learned')}
+                disabled={reviewing}
+              >
+                Got It
+                <span className="review-btn-sub mobile-copy">Mark as learned</span>
+                <span className="review-btn-sub desktop-copy">Right arrow</span>
+              </button>
+            </div>
           </div>
         )}
       </main>
