@@ -144,7 +144,7 @@ export default function StudySession({ deckId, deckTitle, onDone }: Props) {
           onClick={() => setFlipped(f => !f)}
           onKeyDown={e => { if (e.key === 'Enter') setFlipped(f => !f); }}
         >
-          <div className={`flip-card${flipped ? ' flipped' : ''}`}>
+          <div className={`flip-card${flipped ? ' flipped' : ''}`} key={index}>
             <div className="flip-face front">
               <span className="flip-face-label">Front</span>
               {card.frontImage && (
