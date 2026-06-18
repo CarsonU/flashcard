@@ -22,15 +22,18 @@ router.patch('/:id', async (req, res) => {
 });
 
 router.patch('/:id/status', async (req, res) => {
-  const { status } = req.body as { status?: string };
+  const { status, markReviewed } = req.body as { status?: string; markReviewed?: boolean };
   if (status !== 'focus' && status !== 'learned') {
     res.status(400).json({ error: 'status must be focus or learned' });
     return;
   }
   try {
+    const data = markReviewed === false
+      ? { status }
+      : { status, lastReviewedAt: new Date() };
     const card = await prisma.card.update({
       where: { id: req.params.id },
-      data: { status, lastReviewedAt: new Date() },
+      data,
     });
     res.json(card);
   } catch {

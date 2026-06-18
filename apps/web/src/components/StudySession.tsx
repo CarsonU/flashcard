@@ -5,6 +5,7 @@ import type { Card } from '../types';
 interface Props {
   deckId: string;
   deckTitle: string;
+  includeLearned: boolean;
   onDone: () => void;
 }
 
@@ -14,7 +15,7 @@ const IconCheck = () => (
   </svg>
 );
 
-export default function StudySession({ deckId, deckTitle, onDone }: Props) {
+export default function StudySession({ deckId, deckTitle, includeLearned, onDone }: Props) {
   const [cards, setCards] = useState<Card[]>([]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -28,12 +29,12 @@ export default function StudySession({ deckId, deckTitle, onDone }: Props) {
   stateRef.current = { flipped, done, index, cards };
 
   useEffect(() => {
-    api.decks.session(deckId).then(data => {
+    api.decks.session(deckId, includeLearned).then(data => {
       setCards(data);
       setLoading(false);
       if (data.length === 0) setDone(true);
     });
-  }, [deckId]);
+  }, [deckId, includeLearned]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

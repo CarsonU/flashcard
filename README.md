@@ -7,7 +7,7 @@ A self-hosted, minimalist flashcard app for university students. Designed as a c
 - **Deck management** — create and organize multiple decks
 - **Card creation** — text and optional image URL on each side
 - **Binary review** — mark cards as *Still Learning* or *Got It* during a session
-- **Smart sessions** — each session focuses on cards still being learned (80%) with a sample of mastered cards to reinforce retention (20%)
+- **Flexible study sessions** — focus on cards still being learned, or turn on learned-card review to study the full deck
 - **Keyboard-driven entry** — add many cards quickly without lifting your hands from the keyboard (`Tab` between fields, `Ctrl+Enter` to save, `Esc` to finish)
 - **Minimalist UI** — clean, low-stress design
 

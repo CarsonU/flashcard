@@ -21,15 +21,19 @@ export const api = {
       request<Deck>(`/decks/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
     delete: (id: string) => request<void>(`/decks/${id}`, { method: 'DELETE' }),
     cards: (id: string) => request<Card[]>(`/decks/${id}/cards`),
-    session: (id: string) => request<Card[]>(`/decks/${id}/session`),
+    session: (id: string, includeLearned = false) =>
+      request<Card[]>(`/decks/${id}/session${includeLearned ? '?includeLearned=true' : ''}`),
     createCard: (id: string, data: Partial<Card>) =>
       request<Card>(`/decks/${id}/cards`, { method: 'POST', body: JSON.stringify(data) }),
   },
   cards: {
     update: (id: string, data: Partial<Card>) =>
       request<Card>(`/cards/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    updateStatus: (id: string, status: 'focus' | 'learned') =>
-      request<Card>(`/cards/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    updateStatus: (id: string, status: 'focus' | 'learned', options?: { markReviewed?: boolean }) =>
+      request<Card>(`/cards/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, ...(options ?? {}) }),
+      }),
     delete: (id: string) => request<void>(`/cards/${id}`, { method: 'DELETE' }),
   },
 };

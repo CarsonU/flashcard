@@ -7,7 +7,7 @@ interface Props {
   deckId: string;
   deckTitle: string;
   onBack: () => void;
-  onStudy: () => void;
+  onStudy: (includeLearned: boolean) => void;
 }
 
 const IconBack = () => (
@@ -182,17 +182,27 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
 }
 
 export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) {
+  const reviewLearnedStorageKey = `flashcard:review-learned:${deckId}`;
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingCards, setAddingCards] = useState(false);
   const [editCard, setEditCard] = useState<Card | null>(null);
+  const [includeLearned, setIncludeLearned] = useState(() => (
+    localStorage.getItem(reviewLearnedStorageKey) === 'true'
+  ));
+  const [updatingStatusIds, setUpdatingStatusIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
+    setLoading(true);
     api.decks.cards(deckId).then(data => {
       setCards(data);
       setLoading(false);
     });
   }, [deckId]);
+
+  useEffect(() => {
+    setIncludeLearned(localStorage.getItem(reviewLearnedStorageKey) === 'true');
+  }, [reviewLearnedStorageKey]);
 
   function handleCardAdded(card: Card) {
     setCards(prev => [...prev, card]);
@@ -209,8 +219,30 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
     setCards(prev => prev.filter(c => c.id !== id));
   }
 
+  function handleIncludeLearnedChange(next: boolean) {
+    setIncludeLearned(next);
+    localStorage.setItem(reviewLearnedStorageKey, String(next));
+  }
+
+  async function handleToggleStatus(card: Card) {
+    if (updatingStatusIds.has(card.id)) return;
+    const status = card.status === 'focus' ? 'learned' : 'focus';
+    setUpdatingStatusIds(prev => new Set(prev).add(card.id));
+    try {
+      const updated = await api.cards.updateStatus(card.id, status, { markReviewed: false });
+      setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
+    } finally {
+      setUpdatingStatusIds(prev => {
+        const next = new Set(prev);
+        next.delete(card.id);
+        return next;
+      });
+    }
+  }
+
   const focusCount = cards.filter(c => c.status === 'focus').length;
   const learnedCount = cards.filter(c => c.status === 'learned').length;
+  const canStudy = includeLearned ? cards.length > 0 : focusCount > 0;
 
   if (loading) {
     return (
@@ -242,7 +274,24 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
             </button>
           )}
           {cards.length > 0 && (
-            <button className="btn btn-primary" onClick={onStudy}>Study Now</button>
+            <>
+              <label className="review-learned-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeLearned}
+                  onChange={e => handleIncludeLearnedChange(e.target.checked)}
+                />
+                <span>Review learned</span>
+              </label>
+              <button
+                className="btn btn-primary"
+                onClick={() => onStudy(includeLearned)}
+                disabled={!canStudy}
+                title={canStudy ? undefined : 'Turn on Review learned to study this deck'}
+              >
+                Study Now
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -277,9 +326,16 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
                 {card.backText ?? (card.backImage ? '(image)' : '—')}
               </span>
               <div className="card-item-actions">
-                <span className={`badge ${card.status === 'focus' ? 'badge-focus' : 'badge-learned'}`}>
+                <button
+                  type="button"
+                  className={`badge status-toggle ${card.status === 'focus' ? 'badge-focus' : 'badge-learned'}`}
+                  onClick={() => handleToggleStatus(card)}
+                  disabled={updatingStatusIds.has(card.id)}
+                  title={`Mark as ${card.status === 'focus' ? 'Learned' : 'Learning'}`}
+                  aria-label={`Mark card as ${card.status === 'focus' ? 'Learned' : 'Learning'}`}
+                >
                   {card.status === 'focus' ? 'Learning' : 'Learned'}
-                </span>
+                </button>
                 <button className="btn-icon" title="Edit" onClick={() => setEditCard(card)}>
                   <IconEdit />
                 </button>

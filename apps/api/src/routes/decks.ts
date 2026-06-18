@@ -96,18 +96,14 @@ router.post('/:id/cards', async (req, res) => {
 
 router.get('/:id/session', async (req, res) => {
   try {
-    const [focusCards, learnedCards] = await Promise.all([
-      prisma.card.findMany({ where: { deckId: req.params.id, status: 'focus' } }),
-      prisma.card.findMany({ where: { deckId: req.params.id, status: 'learned' } }),
-    ]);
+    const includeLearned = req.query.includeLearned === 'true';
+    const cards = await prisma.card.findMany({
+      where: includeLearned
+        ? { deckId: req.params.id }
+        : { deckId: req.params.id, status: 'focus' },
+    });
 
-    const learnedCount = learnedCards.length > 0
-      ? Math.max(1, Math.floor(learnedCards.length * 0.2))
-      : 0;
-    const selectedLearned = shuffle(learnedCards).slice(0, learnedCount);
-    const session = shuffle([...focusCards, ...selectedLearned]);
-
-    res.json(session);
+    res.json(shuffle(cards));
   } catch {
     res.status(500).json({ error: 'Failed to build session' });
   }

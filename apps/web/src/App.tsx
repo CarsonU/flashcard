@@ -6,7 +6,7 @@ import StudySession from './components/StudySession';
 type View =
   | { page: 'dashboard' }
   | { page: 'deck'; deckId: string; deckTitle: string }
-  | { page: 'study'; deckId: string; deckTitle: string };
+  | { page: 'study'; deckId: string; deckTitle: string; includeLearned: boolean };
 
 export default function App() {
   const [view, setView] = useState<View>({ page: 'dashboard' });
@@ -16,6 +16,7 @@ export default function App() {
       <StudySession
         deckId={view.deckId}
         deckTitle={view.deckTitle}
+        includeLearned={view.includeLearned}
         onDone={() => setView({ page: 'deck', deckId: view.deckId, deckTitle: view.deckTitle })}
       />
     );
@@ -27,7 +28,7 @@ export default function App() {
         deckId={view.deckId}
         deckTitle={view.deckTitle}
         onBack={() => setView({ page: 'dashboard' })}
-        onStudy={() => setView({ page: 'study', deckId: view.deckId, deckTitle: view.deckTitle })}
+        onStudy={includeLearned => setView({ page: 'study', deckId: view.deckId, deckTitle: view.deckTitle, includeLearned })}
       />
     );
   }
