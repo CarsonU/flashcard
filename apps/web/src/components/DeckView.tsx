@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Check, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { api } from '../api';
 import type { Card } from '../types';
 import CardModal from './CardModal';
@@ -10,29 +11,16 @@ interface Props {
   onStudy: (includeLearned: boolean) => void;
 }
 
-const IconBack = () => (
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-    <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
-  </svg>
-);
-
-const IconEdit = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-    <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zM0 13v3h3l8.5-8.5-3-3L0 13z"/>
-  </svg>
-);
-
-const IconTrash = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-    <path fillRule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-  </svg>
-);
-
 interface AddCardFormProps {
   deckId: string;
   onCardAdded: (card: Card) => void;
   onDone: () => void;
+}
+
+function cardPreview(text: string | null, image: string | null) {
+  if (text) return text;
+  if (image) return '(image)';
+  return '-';
 }
 
 function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
@@ -44,11 +32,10 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
   const [flash, setFlash] = useState(false);
   const [saving, setSaving] = useState(false);
   const frontTextRef = useRef<HTMLTextAreaElement>(null);
-  const backTextRef  = useRef<HTMLTextAreaElement>(null);
-  const frontImgRef  = useRef<HTMLInputElement>(null);
-  const backImgRef   = useRef<HTMLInputElement>(null);
+  const backTextRef = useRef<HTMLTextAreaElement>(null);
+  const frontImgRef = useRef<HTMLInputElement>(null);
+  const backImgRef = useRef<HTMLInputElement>(null);
 
-  // Tab order: frontText → backText → frontImg → backImg → (wrap)
   function handleTab(
     e: React.KeyboardEvent,
     prev: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>,
@@ -65,6 +52,7 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onDone();
     }
+
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onDone]);
@@ -72,6 +60,7 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
   async function save() {
     const hasContent = frontText.trim() || frontImage.trim() || backText.trim() || backImage.trim();
     if (!hasContent || saving) return;
+
     setSaving(true);
     try {
       const card = await api.decks.createCard(deckId, {
@@ -80,6 +69,7 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
         backText: backText.trim() || null,
         backImage: backImage.trim() || null,
       });
+
       onCardAdded(card);
       setFrontText('');
       setFrontImage('');
@@ -104,25 +94,30 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
       save();
       return;
     }
+
     handleTab(e, prev, next);
   }
 
   return (
-    <div className={`add-panel${flash ? ' add-panel-flash' : ''}`}>
+    <section className={`add-panel${flash ? ' add-panel-flash' : ''}`} aria-label="Add cards">
       <div className="add-panel-header">
-        <span className="add-panel-title">Add Cards</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div>
+          <span className="add-panel-title">Add Cards</span>
           {count > 0 && (
             <span className="add-panel-count">{count} card{count !== 1 ? 's' : ''} added</span>
           )}
-          <button className="btn btn-ghost btn-sm" onClick={onDone}>Done</button>
         </div>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={onDone}>
+          <Check size={16} aria-hidden="true" />
+          Done
+        </button>
       </div>
 
       <div className="add-panel-grid">
         <div className="add-panel-side">
-          <label className="add-panel-label">Front</label>
+          <label className="add-panel-label" htmlFor="front-text">Front</label>
           <textarea
+            id="front-text"
             ref={frontTextRef}
             className="add-panel-textarea"
             placeholder="Front side of the card..."
@@ -137,6 +132,7 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
             placeholder="Image URL (optional)"
             type="url"
             value={frontImage}
+            aria-label="Front image URL"
             onChange={e => setFrontImage(e.target.value)}
             onKeyDown={e => onKeyDown(e, backTextRef, backImgRef)}
           />
@@ -145,8 +141,9 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
         <div className="add-panel-divider" />
 
         <div className="add-panel-side">
-          <label className="add-panel-label">Back</label>
+          <label className="add-panel-label" htmlFor="back-text">Back</label>
           <textarea
+            id="back-text"
             ref={backTextRef}
             className="add-panel-textarea"
             placeholder="Back side of the card..."
@@ -161,6 +158,7 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
             placeholder="Image URL (optional)"
             type="url"
             value={backImage}
+            aria-label="Back image URL"
             onChange={e => setBackImage(e.target.value)}
             onKeyDown={e => onKeyDown(e, frontImgRef, frontTextRef)}
           />
@@ -168,16 +166,18 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
       </div>
 
       <div className="add-panel-footer">
-        <span className="add-panel-hint">
-          <kbd className="kbd">Ctrl+Enter</kbd> save &nbsp;·&nbsp;
-          <kbd className="kbd">Tab</kbd> next field &nbsp;·&nbsp;
+        <span className="add-panel-hint desktop-only">
+          <kbd className="kbd">Ctrl+Enter</kbd> save
+          <span aria-hidden="true"> &middot; </span>
+          <kbd className="kbd">Tab</kbd> next field
+          <span aria-hidden="true"> &middot; </span>
           <kbd className="kbd">Esc</kbd> finish
         </span>
-        <button className="btn btn-primary" onClick={save} disabled={saving}>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
           {saving ? 'Saving...' : 'Save Card'}
         </button>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -215,6 +215,7 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this card?')) return;
+
     await api.cards.delete(id);
     setCards(prev => prev.filter(c => c.id !== id));
   }
@@ -226,6 +227,7 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
 
   async function handleToggleStatus(card: Card) {
     if (updatingStatusIds.has(card.id)) return;
+
     const status = card.status === 'focus' ? 'learned' : 'focus';
     setUpdatingStatusIds(prev => new Set(prev).add(card.id));
     try {
@@ -247,17 +249,18 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
   if (loading) {
     return (
       <div className="page">
-        <p style={{ color: 'var(--text-secondary)' }}>Loading...</p>
+        <p className="loading-text">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <div>
-          <button className="back-btn" onClick={onBack}>
-            <IconBack /> All Decks
+    <div className="page deck-page">
+      <header className="page-header deck-page-header">
+        <div className="deck-heading">
+          <button type="button" className="back-btn" onClick={onBack}>
+            <ArrowLeft size={16} aria-hidden="true" />
+            All Decks
           </button>
           <h1 className="page-title">{deckTitle}</h1>
           <p className="page-subtitle">
@@ -267,34 +270,41 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
             )}
           </p>
         </div>
+
         <div className="deck-header-actions">
-          {!addingCards && (
-            <button className="btn btn-ghost" onClick={() => setAddingCards(true)}>
-              + Add Cards
-            </button>
-          )}
           {cards.length > 0 && (
             <>
+              <button
+                type="button"
+                className="btn btn-primary btn-study"
+                onClick={() => onStudy(includeLearned)}
+                disabled={!canStudy}
+                title={canStudy ? undefined : 'Turn on Review learned to study this deck'}
+              >
+                <Play size={17} fill="currentColor" aria-hidden="true" />
+                Study Now
+              </button>
               <label className="review-learned-toggle">
                 <input
                   type="checkbox"
                   checked={includeLearned}
                   onChange={e => handleIncludeLearnedChange(e.target.checked)}
                 />
+                <span className="toggle-track" aria-hidden="true">
+                  <span className="toggle-thumb" />
+                </span>
                 <span>Review learned</span>
               </label>
-              <button
-                className="btn btn-primary"
-                onClick={() => onStudy(includeLearned)}
-                disabled={!canStudy}
-                title={canStudy ? undefined : 'Turn on Review learned to study this deck'}
-              >
-                Study Now
-              </button>
             </>
           )}
+          {!addingCards && (
+            <button type="button" className="btn btn-ghost btn-secondary-action" onClick={() => setAddingCards(true)}>
+              <Plus size={17} aria-hidden="true" />
+              Add Cards
+            </button>
+          )}
         </div>
-      </div>
+      </header>
 
       {addingCards && (
         <AddCardForm
@@ -308,23 +318,34 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
         <div className="empty">
           <div className="empty-title">No cards yet</div>
           <div className="empty-body">Add your first card to start studying</div>
-          <button className="btn btn-primary" onClick={() => setAddingCards(true)}>+ Add Cards</button>
+          <button type="button" className="btn btn-primary" onClick={() => setAddingCards(true)}>
+            <Plus size={17} aria-hidden="true" />
+            Add Cards
+          </button>
         </div>
       ) : cards.length > 0 ? (
-        <div className="card-list" style={{ marginTop: addingCards ? 24 : 0 }}>
-          <div className="card-list-header">
+        <div className={`card-list${addingCards ? ' card-list-spaced' : ''}`}>
+          <div className="card-list-header" aria-hidden="true">
             <span>Front</span>
             <span>Back</span>
             <span></span>
           </div>
           {cards.map(card => (
-            <div key={card.id} className="card-item">
-              <span className="card-item-text">
-                {card.frontText ?? (card.frontImage ? '(image)' : '—')}
-              </span>
-              <span className="card-item-text muted">
-                {card.backText ?? (card.backImage ? '(image)' : '—')}
-              </span>
+            <article key={card.id} className="card-item">
+              <div className="card-item-main">
+                <div className="card-side">
+                  <span className="card-side-label">Front</span>
+                  <span className="card-item-text">
+                    {cardPreview(card.frontText, card.frontImage)}
+                  </span>
+                </div>
+                <div className="card-side">
+                  <span className="card-side-label">Back</span>
+                  <span className="card-item-text muted">
+                    {cardPreview(card.backText, card.backImage)}
+                  </span>
+                </div>
+              </div>
               <div className="card-item-actions">
                 <button
                   type="button"
@@ -333,17 +354,30 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
                   disabled={updatingStatusIds.has(card.id)}
                   title={`Mark as ${card.status === 'focus' ? 'Learned' : 'Learning'}`}
                   aria-label={`Mark card as ${card.status === 'focus' ? 'Learned' : 'Learning'}`}
+                  aria-pressed={card.status === 'learned'}
                 >
                   {card.status === 'focus' ? 'Learning' : 'Learned'}
                 </button>
-                <button className="btn-icon" title="Edit" onClick={() => setEditCard(card)}>
-                  <IconEdit />
+                <button
+                  type="button"
+                  className="btn-icon"
+                  title="Edit"
+                  aria-label="Edit card"
+                  onClick={() => setEditCard(card)}
+                >
+                  <Pencil size={16} aria-hidden="true" />
                 </button>
-                <button className="btn-icon danger" title="Delete" onClick={() => handleDelete(card.id)}>
-                  <IconTrash />
+                <button
+                  type="button"
+                  className="btn-icon danger"
+                  title="Delete"
+                  aria-label="Delete card"
+                  onClick={() => handleDelete(card.id)}
+                >
+                  <Trash2 size={16} aria-hidden="true" />
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       ) : null}
