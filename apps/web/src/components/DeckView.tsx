@@ -84,22 +84,35 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void save();
+  }
+
+  function handleSaveShortcut(e: React.KeyboardEvent<HTMLFormElement>) {
+    const isEnter = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
+    if (!(e.ctrlKey || e.metaKey) || !isEnter) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    void save();
+  }
+
   function onKeyDown(
     e: React.KeyboardEvent,
     prev: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>,
     next: React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>
   ) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      save();
-      return;
-    }
-
     handleTab(e, prev, next);
   }
 
   return (
-    <section className={`add-panel${flash ? ' add-panel-flash' : ''}`} aria-label="Add cards">
+    <form
+      className={`add-panel${flash ? ' add-panel-flash' : ''}`}
+      aria-label="Add cards"
+      onSubmit={handleSubmit}
+      onKeyDownCapture={handleSaveShortcut}
+    >
       <div className="add-panel-header">
         <div>
           <span className="add-panel-title">Add Cards</span>
@@ -173,11 +186,11 @@ function AddCardForm({ deckId, onCardAdded, onDone }: AddCardFormProps) {
           <span aria-hidden="true"> &middot; </span>
           <kbd className="kbd">Esc</kbd> finish
         </span>
-        <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
+        <button type="submit" className="btn btn-primary" disabled={saving}>
           {saving ? 'Saving...' : 'Save Card'}
         </button>
       </div>
-    </section>
+    </form>
   );
 }
 
