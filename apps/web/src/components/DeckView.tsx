@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, Check, Download, MoreHorizontal, Pencil, Play, Plus, Trash2, Upload } from 'lucide-react';
 import { api } from '../api';
+import { cardsToCsv, parseCsv } from '../csv';
 import type { Card } from '../types';
 import CardModal from './CardModal';
+
+type SortMode = 'original' | 'alpha' | 'status';
 
 interface Props {
   deckId: string;
@@ -204,6 +207,12 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
     localStorage.getItem(reviewLearnedStorageKey) === 'true'
   ));
   const [updatingStatusIds, setUpdatingStatusIds] = useState<Set<string>>(() => new Set());
+  const [query, setQuery] = useState('');
+  const [sortMode, setSortMode] = useState<SortMode>('original');
+  const [importing, setImporting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -217,8 +226,74 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
     setIncludeLearned(localStorage.getItem(reviewLearnedStorageKey) === 'true');
   }, [reviewLearnedStorageKey]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function onPointerDown(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
   function handleCardAdded(card: Card) {
     setCards(prev => [...prev, card]);
+  }
+
+  function handleExport() {
+    const csv = cardsToCsv(cards);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const safeTitle = deckTitle.trim().replace(/[^a-z0-9-_ ]/gi, '').trim() || 'deck';
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${safeTitle}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImport(file: File) {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      if (rows.length === 0) {
+        alert('No cards found in that CSV file.');
+        return;
+      }
+      let added = 0;
+      for (const row of rows) {
+        const card = await api.decks.createCard(deckId, {
+          frontText: row.front || null,
+          backText: row.back || null,
+        });
+        handleCardAdded(card);
+        added++;
+      }
+      alert(`Imported ${added} card${added !== 1 ? 's' : ''}.`);
+    } catch {
+      alert('Could not import that file. Make sure it is a valid CSV.');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void handleImport(file);
   }
 
   function handleCardEdited(card: Card) {
@@ -256,8 +331,32 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
   }
 
   const focusCount = cards.filter(c => c.status === 'focus').length;
-  const learnedCount = cards.filter(c => c.status === 'learned').length;
   const canStudy = includeLearned ? cards.length > 0 : focusCount > 0;
+
+  const visibleCards = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? cards.filter(c =>
+          `${c.frontText ?? ''} ${c.backText ?? ''}`.toLowerCase().includes(q)
+        )
+      : cards;
+
+    if (sortMode === 'alpha') {
+      return [...filtered].sort((a, b) => {
+        const af = (a.frontText ?? '').trim();
+        const bf = (b.frontText ?? '').trim();
+        if (!af && !bf) return 0;
+        if (!af) return 1;
+        if (!bf) return -1;
+        return af.localeCompare(bf, undefined, { sensitivity: 'base' });
+      });
+    }
+    if (sortMode === 'status') {
+      const rank = (c: Card) => (c.status === 'focus' ? 0 : 1);
+      return [...filtered].sort((a, b) => rank(a) - rank(b));
+    }
+    return filtered;
+  }, [cards, query, sortMode]);
 
   if (loading) {
     return (
@@ -278,9 +377,6 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
           <h1 className="page-title">{deckTitle}</h1>
           <p className="page-subtitle">
             {cards.length} card{cards.length !== 1 ? 's' : ''}
-            {cards.length > 0 && (
-              <> &middot; {focusCount} learning &middot; {learnedCount} learned</>
-            )}
           </p>
         </div>
 
@@ -316,7 +412,57 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
               Add Cards
             </button>
           )}
+          <div className="deck-menu" ref={menuRef}>
+            <button
+              type="button"
+              className="btn-icon deck-menu-trigger"
+              onClick={() => setMenuOpen(open => !open)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="More actions"
+              title="More actions"
+            >
+              <MoreHorizontal size={18} aria-hidden="true" />
+            </button>
+            {menuOpen && (
+              <div className="deck-menu-popover" role="menu">
+                <button
+                  type="button"
+                  className="deck-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={importing}
+                >
+                  <Upload size={16} aria-hidden="true" />
+                  {importing ? 'Importing...' : 'Import CSV'}
+                </button>
+                <button
+                  type="button"
+                  className="deck-menu-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    handleExport();
+                  }}
+                  disabled={cards.length === 0}
+                >
+                  <Download size={16} aria-hidden="true" />
+                  Export CSV
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="visually-hidden-input"
+          onChange={onFileChange}
+        />
       </header>
 
       {addingCards && (
@@ -337,13 +483,43 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
           </button>
         </div>
       ) : cards.length > 0 ? (
-        <div className={`card-list${addingCards ? ' card-list-spaced' : ''}`}>
+        <>
+          <div className={`card-toolbar${addingCards ? ' card-toolbar-spaced' : ''}`}>
+            <input
+              type="search"
+              className="card-search"
+              placeholder="Search cards..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              aria-label="Search cards"
+            />
+            <label className="card-sort">
+              <span className="card-sort-label">Sort</span>
+              <select
+                className="card-sort-select"
+                value={sortMode}
+                onChange={e => setSortMode(e.target.value as SortMode)}
+              >
+                <option value="original">Originally added</option>
+                <option value="alpha">A–Z</option>
+                <option value="status">Learning / Learned</option>
+              </select>
+            </label>
+          </div>
+
+          {visibleCards.length === 0 ? (
+            <div className="empty">
+              <div className="empty-title">No cards match</div>
+              <div className="empty-body">Try a different search.</div>
+            </div>
+          ) : (
+        <div className="card-list">
           <div className="card-list-header" aria-hidden="true">
             <span>Front</span>
             <span>Back</span>
             <span></span>
           </div>
-          {cards.map(card => (
+          {visibleCards.map(card => (
             <article key={card.id} className="card-item">
               <div className="card-item-main">
                 <div className="card-side">
@@ -393,6 +569,8 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
             </article>
           ))}
         </div>
+          )}
+        </>
       ) : null}
 
       {editCard && (
