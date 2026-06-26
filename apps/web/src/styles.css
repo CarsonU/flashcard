@@ -329,6 +329,32 @@ button {
   border-color: var(--accent);
 }
 
+.card-sort-dir {
+  width: var(--tap-target);
+  height: var(--tap-target);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  line-height: 0;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.card-sort-dir:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.card-sort-dir:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .visually-hidden-input {
   position: absolute;
   width: 1px;

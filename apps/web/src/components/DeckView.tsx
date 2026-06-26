@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Check, Download, MoreHorizontal, Pencil, Play, Plus, Trash2, Upload } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowUp, Check, Download, MoreHorizontal, Pencil, Play, Plus, Trash2, Upload } from 'lucide-react';
 import { api } from '../api';
 import { cardsToCsv, parseCsv } from '../csv';
 import type { Card } from '../types';
@@ -209,6 +209,7 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
   const [updatingStatusIds, setUpdatingStatusIds] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('original');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [importing, setImporting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -341,8 +342,9 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
         )
       : cards;
 
+    let sorted: Card[];
     if (sortMode === 'alpha') {
-      return [...filtered].sort((a, b) => {
+      sorted = [...filtered].sort((a, b) => {
         const af = (a.frontText ?? '').trim();
         const bf = (b.frontText ?? '').trim();
         if (!af && !bf) return 0;
@@ -350,13 +352,15 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
         if (!bf) return -1;
         return af.localeCompare(bf, undefined, { sensitivity: 'base' });
       });
-    }
-    if (sortMode === 'status') {
+    } else if (sortMode === 'status') {
       const rank = (c: Card) => (c.status === 'focus' ? 0 : 1);
-      return [...filtered].sort((a, b) => rank(a) - rank(b));
+      sorted = [...filtered].sort((a, b) => rank(a) - rank(b));
+    } else {
+      sorted = filtered;
     }
-    return filtered;
-  }, [cards, query, sortMode]);
+
+    return sortDir === 'desc' ? [...sorted].reverse() : sorted;
+  }, [cards, query, sortMode, sortDir]);
 
   if (loading) {
     return (
@@ -504,6 +508,17 @@ export default function DeckView({ deckId, deckTitle, onBack, onStudy }: Props) 
                 <option value="alpha">A–Z</option>
                 <option value="status">Learning / Learned</option>
               </select>
+              <button
+                type="button"
+                className="card-sort-dir"
+                onClick={() => setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))}
+                aria-label={sortDir === 'asc' ? 'Sort descending' : 'Sort ascending'}
+                title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
+              >
+                {sortDir === 'asc'
+                  ? <ArrowUp size={16} aria-hidden="true" />
+                  : <ArrowDown size={16} aria-hidden="true" />}
+              </button>
             </label>
           </div>
 
