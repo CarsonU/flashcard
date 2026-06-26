@@ -32,8 +32,8 @@ export default function CardModal({ deckId, card, onSave, onClose }: Props) {
     (e.shiftKey ? prev : next).current?.focus();
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function save() {
+    if (saving) return;
     setSaving(true);
 
     try {
@@ -52,6 +52,20 @@ export default function CardModal({ deckId, card, onSave, onClose }: Props) {
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void save();
+  }
+
+  function handleSaveShortcut(e: React.KeyboardEvent<HTMLFormElement>) {
+    const isEnter = e.key === 'Enter' || e.code === 'Enter' || e.code === 'NumpadEnter';
+    if (!(e.ctrlKey || e.metaKey) || !isEnter) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    void save();
+  }
+
   return (
     <div
       className="modal-overlay"
@@ -59,7 +73,12 @@ export default function CardModal({ deckId, card, onSave, onClose }: Props) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <form className="modal" onSubmit={handleSubmit} aria-labelledby="card-modal-title">
+      <form
+        className="modal"
+        onSubmit={handleSubmit}
+        onKeyDownCapture={handleSaveShortcut}
+        aria-labelledby="card-modal-title"
+      >
         <div className="modal-header">
           <h2 id="card-modal-title" className="modal-title">{card ? 'Edit Card' : 'New Card'}</h2>
           <button type="button" className="btn-icon modal-close" onClick={onClose} aria-label="Close dialog">
